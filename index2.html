@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Composition API</title>
+        <style>
+            .highlighted-text {
+                color: #72e426;
+                font-weight: bold;
+            }
+        
+            body,
+            html {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                background-color: #F4F4F4;
+                font-weight: bold;
+            }
+        
+            #app {
+                min-height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background-color: #FFFFFF;
+                padding: 20px;
+                border-radius: 35px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+        
+            input {
+                padding: 10px;
+                font-size: 16px;
+                margin-bottom: 10px;
+                border: 2px solid #72e426;
+                border-radius: 35px;
+                margin-right: 5px;
+            }
+        
+            table {
+                width: 65%;
+                border-collapse: collapse;
+            }
+        
+            table,
+            th,
+            td {
+                border: 1px solid #030303;
+            }
+        
+            th,
+            td {
+                padding: 10px;
+                text-align: center;
+            }
+        
+            th {
+                background-color: #26c7e4;
+                color: #FFFFFF;
+            }
+        
+            tr:nth-child(even) {
+                background-color: #F9F9F9;
+            }
+        
+            tr:nth-child(odd) {
+                background-color: #FFFFFF;
+            }
+        
+            td:nth-child(6) {
+                text-align: center;
+            }
+        
+            button {
+                background-color: #d912f3;
+                color: #FFFFFF;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 35px;
+                cursor: pointer;
+                font-weight: bold;
+            }
+        
+            input#search-input {
+                width: 50%;
+                padding: 10px;
+                font-size: 16px;
+                margin-bottom: 10px;
+                border: 2px solid #72e426;
+                border-radius: 35px;
+            }
+        
+            select {
+                padding: 10px;
+                font-size: 16px;
+                border: 2px solid #72e426;
+                border-radius: 35px;
+                margin-right: 5px;
+            }
+            .center {
+            text-align: center;
+            }   
+            .error-message {
+                color: #bd1a1a;
+            }
+        </style>
+</head>
+
+<body>
+    <p class="center">Зміна теми оформлення</p>
+    
+    <p class="center"><label for="theme-switch">Оберіть тему:</label>
+    <select id="theme-switch">
+        <option value="light">Світла тема</option>
+        <option value="dark">Темна тема</option>
+    </select>
+</p>
+    <div id="app">
+        <input id="search-input" v-model="searchText" placeholder="Пошук за ПІБ">
+        <div >
+            <input v-model="newStudent.name" placeholder="ПІБ">
+            <input v-model="newStudent.birthYear" type="number"placeholder="Рік народження">
+            <select v-model="newStudent.group" placeholder="Група">
+                <option value="РПЗ 20 1/9">РПЗ 20 1/9</option>
+                <option value="РПЗ 20 2/9">РПЗ 20 2/9</option>
+            </select>
+            <input type="number" v-model="newStudent.grade" placeholder="Оцінка">
+            <input type="checkbox" v-model="newStudent.passed" />
+            <button @click="addStudent">Додати студента</button>
+            <p v-if="error" class="error-message">Заповніть всі обов'язкові поля!</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ПІБ</th>
+                    <th>Рік народження</th>
+                    <th>Група</th>
+                    <th>Оцінка</th>
+                    <th>Практика</th>
+                    <th>Дії</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="student in students" :key="student.id">
+                    <td>
+                        <span :class="{ 'highlighted-text': searchText && student.highlighted }">{{ student.name
+                            }}</span>
+                    </td>
+                    <td>{{ student.birthYear }}</td>
+                    <td>
+                        <span :class="{ 'highlighted-text': searchText && student.highlighted }">{{ student.group
+                            }}</span>
+                    </td>
+                    <td>{{ student.grade }}</td>
+                    <td><input type="checkbox" v-model="student.passed" /></td>
+                    <td><button @click="deleteStudent(student.id)">Видалити</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script>
+        const { ref, watchEffect, onMounted } = Vue;
+
+        Vue.createApp({
+            setup() {
+                const searchText = ref('');
+                const students = ref([
+                    { id: 1, name: 'Горбачова Анастасія', group: 'РПЗ 20 1/9', birthYear: 2005, grade: 5, passed: true },
+                    { id: 2, name: 'Добровольський Євгеній', group: 'РПЗ 20 2/9', birthYear: 2005, grade: 5, passed: false },
+                    { id: 3, name: 'Горюк Максим', group: 'РПЗ 20 2/9', birthYear: 2005, grade: 5, passed: true },
+                    { id: 4, name: 'Халявенко Софія', group: 'РПЗ 20 2/9', birthYear: 2005, grade: 5, passed: true },
+                ]);
+
+                const newStudent = ref({
+                    name: '',
+                    birthYear: '',
+                    group: '',
+                    grade: null,
+                    passed: false
+                });
+
+                const error = ref(false);
+
+                const deleteStudent = (id) => {
+                    const index = students.value.findIndex(student => student.id === id);
+                    if (index !== -1) {
+                        students.value = students.value.filter(student => student.id !== id);
+                    }
+                };
+
+                const highlightStudents = () => {
+                    students.value.forEach(student => {
+                        const nameParts = student.name.split(' ');
+                        const lastName = nameParts[0];
+                        const firstName = nameParts[1];
+                        const highlightedName = lastName.includes(searchText.value) || firstName.includes(searchText.value);
+                        const highlightedGroup = student.group.includes(searchText.value);
+                        student.highlighted = highlightedName || highlightedGroup;
+                    });
+                };
+
+                const addStudent = () => {
+                    if (newStudent.value.name && newStudent.value.birthYear && newStudent.value.group && newStudent.value.grade !== null) {
+                        const newStudentId = students.value.length + 1;
+                        students.value.push({
+                            id: newStudentId,
+                            name: newStudent.value.name,
+                            group: newStudent.value.group,
+                            birthYear: newStudent.value.birthYear,
+                            grade: newStudent.value.grade,
+                            passed: newStudent.value.passed
+                        });
+
+                        newStudent.value.name = '';
+                        newStudent.value.group = '';
+                        newStudent.value.birthYear = '';
+                        newStudent.value.grade = null;
+                        newStudent.value.passed = false;
+                        error.value = false;
+                    } else {
+                        error.value = true;
+                    }
+                };
+
+                onMounted(() => {
+                    watchEffect(() => {
+                        highlightStudents();
+                    });
+                });
+
+                return {
+                    searchText, students, newStudent, error, deleteStudent, addStudent
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
